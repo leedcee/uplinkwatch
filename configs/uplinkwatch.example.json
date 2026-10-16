@@ -1,0 +1,22 @@
+{
+  "probe_id": "home-windows",
+  "interval": "1m",
+  "concurrency": 4,
+  "listen_address": "127.0.0.1:9876",
+  "targets": [
+    {
+      "name": "example",
+      "url": "https://example.com/",
+      "expected_statuses": [200],
+      "expected_content": "Example Domain",
+      "max_response_bytes": 1048576,
+      "timeouts": {
+        "overall": "20s",
+        "dns": "3s",
+        "tcp": "5s",
+        "tls": "5s",
+        "http": "10s"
+      }
+    }
+  ]
+}

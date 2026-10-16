@@ -1,0 +1,19 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: local-ui
+  group_by: [alertname, probe, site]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: local-ui
+
+inhibit_rules:
+  - source_matchers:
+      - alertname="UplinkWatchAgentMissing"
+    target_matchers:
+      - service="uplinkwatch"
+    equal: [environment]

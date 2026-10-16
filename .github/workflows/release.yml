@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Test
+        run: go test ./...
+      - name: Build Windows binary
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist,bin | Out-Null
+          $buildDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+          go build -trimpath -ldflags "-s -w -X main.version=$env:GITHUB_REF_NAME -X main.commit=$env:GITHUB_SHA -X main.buildDate=$buildDate" -o bin/uplinkwatch.exe ./cmd/uplinkwatch
+          New-Item -ItemType Directory -Force dist/uplinkwatch/bin | Out-Null
+          New-Item -ItemType Directory -Force dist/uplinkwatch/configs | Out-Null
+          New-Item -ItemType Directory -Force dist/uplinkwatch/scripts | Out-Null
+          Copy-Item bin/uplinkwatch.exe dist/uplinkwatch/bin/uplinkwatch.exe
+          Copy-Item configs/uplinkwatch.example.json dist/uplinkwatch/configs/uplinkwatch.example.json
+          Copy-Item scripts/windows dist/uplinkwatch/scripts/windows -Recurse
+          Copy-Item deploy dist/uplinkwatch/deploy -Recurse
+          Copy-Item docs dist/uplinkwatch/docs -Recurse
+          Copy-Item README.md,LICENSE,SECURITY.md dist/uplinkwatch/
+          Compress-Archive -Path dist/uplinkwatch -DestinationPath dist/uplinkwatch-windows-amd64.zip
+          $hash = (Get-FileHash dist/uplinkwatch-windows-amd64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  uplinkwatch-windows-amd64.zip" | Set-Content -Encoding ascii dist/uplinkwatch-windows-amd64.zip.sha256
+          Remove-Item dist/uplinkwatch -Recurse -Force
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create $env:GITHUB_REF_NAME dist/* --verify-tag --generate-notes --title "UplinkWatch $env:GITHUB_REF_NAME"

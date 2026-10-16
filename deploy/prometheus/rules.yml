@@ -1,0 +1,56 @@
+groups:
+  - name: uplinkwatch-recording
+    interval: 30s
+    rules:
+      - record: site:check_success:ratio5m
+        expr: |
+          sum by (probe, site) (rate(site_successful_checks_total[5m]))
+          /
+          clamp_min(sum by (probe, site) (rate(site_checks_total[5m])), 0.000001)
+
+      - record: site:check_success:ratio30d
+        expr: |
+          sum by (probe, site) (increase(site_successful_checks_total[30d]))
+          /
+          clamp_min(sum by (probe, site) (increase(site_checks_total[30d])), 1)
+
+      - record: site:slo_error_ratio:ratio30d
+        expr: 1 - site:check_success:ratio30d
+
+      - record: site:slo_error_budget_remaining:ratio30d
+        expr: clamp_min(1 - (site:slo_error_ratio:ratio30d / 0.001), 0)
+
+  - name: uplinkwatch-alerts
+    rules:
+      - alert: UplinkWatchSiteDown
+        expr: site_reachable == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: uplinkwatch
+        annotations:
+          summary: "{{ $labels.site }} is unreachable from {{ $labels.probe }}"
+          description: "The target has failed all configured checks for at least five minutes."
+          runbook: "docs/runbooks/site-down.md"
+
+      - alert: UplinkWatchHighLatency
+        expr: site_http_duration_seconds > 1.5
+        for: 10m
+        labels:
+          severity: warning
+          service: uplinkwatch
+        annotations:
+          summary: "High HTTP latency for {{ $labels.site }}"
+          description: "HTTP stage latency from {{ $labels.probe }} has exceeded 1.5 seconds for ten minutes."
+          runbook: "docs/runbooks/high-latency.md"
+
+      - alert: UplinkWatchAgentMissing
+        expr: up{job="uplinkwatch-agent"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: uplinkwatch
+        annotations:
+          summary: "UplinkWatch agent metrics are unavailable"
+          description: "Prometheus has been unable to scrape the local agent for two minutes."
+          runbook: "docs/runbooks/agent-missing.md"

@@ -1,0 +1,14 @@
+# Local build and analysis artifacts
+/work/
+/bin/
+*.exe
+coverage.out
+/dist/
+/.env
+
+# Local observability data
+/deploy/data/
+
+# Generated local configuration may reveal browsing-derived site names
+/data/
+

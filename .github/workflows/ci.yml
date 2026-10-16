@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Verify dependencies
+        run: go mod verify
+      - name: Check formatting
+        run: |
+          go fmt ./...
+          git diff --exit-code
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test -coverprofile=coverage.out ./...
+      - name: Race detector
+        if: runner.os == 'Linux'
+        run: go test -race ./...
+      - name: Build
+        run: go build ./cmd/uplinkwatch
+      - name: Upload coverage
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+  observability-config:
+    name: Validate observability configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate Compose file
+        run: docker compose -f deploy/docker-compose.yml config --quiet
+      - name: Validate Prometheus configuration and rules
+        run: |
+          docker run --rm --entrypoint /bin/promtool -v "$PWD/deploy/prometheus:/etc/prometheus:ro" prom/prometheus:v3.7.3 \
+            check config /etc/prometheus/prometheus.yml
+      - name: Validate Alertmanager configuration
+        run: |
+          docker run --rm --entrypoint /bin/amtool -v "$PWD/deploy/alertmanager:/etc/alertmanager:ro" prom/alertmanager:v0.28.1 \
+            check-config /etc/alertmanager/alertmanager.yml
