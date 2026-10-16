@@ -6,7 +6,7 @@ All notable changes to UplinkWatch will be documented in this file.
 
 - No unreleased changes yet.
 
-## 0.1.0 - 2026-10-16
+## 1.0.0 - 2026-10-16
 
 - Implemented staged DNS, TCP, TLS, and HTTP reachability checks.
 - Added a local web dashboard, JSON API, health endpoint, and Prometheus metrics.
