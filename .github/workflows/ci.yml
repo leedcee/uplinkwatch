@@ -22,7 +22,7 @@ jobs:
         os: [windows-latest, ubuntu-latest]
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
@@ -35,7 +35,7 @@ jobs:
       - name: Vet
         run: go vet ./...
       - name: Test
-        run: go test -coverprofile=coverage.out ./...
+        run: go test -coverprofile="${{ runner.temp }}/coverage.out" ./...
       - name: Race detector
         if: runner.os == 'Linux'
         run: go test -race ./...
@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage
-          path: coverage.out
+          path: ${{ runner.temp }}/coverage.out
 
   observability-config:
     name: Validate observability configuration
