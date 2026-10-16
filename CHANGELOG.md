@@ -6,6 +6,10 @@ All notable changes to UplinkWatch will be documented in this file.
 
 - No unreleased changes yet.
 
+## 1.0.1 - 2026-10-16
+
+- Fixed the full-stack launcher opening the wildcard listen address instead of the local dashboard URL.
+
 ## 1.0.0 - 2026-10-16
 
 - Implemented staged DNS, TCP, TLS, and HTTP reachability checks.

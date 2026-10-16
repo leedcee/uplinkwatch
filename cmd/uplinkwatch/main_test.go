@@ -76,3 +76,26 @@ func TestRunVersionExitsSuccessfully(t *testing.T) {
 		t.Fatalf("expected product name in version output, got %q", stdout.String())
 	}
 }
+
+func TestLocalDashboardURL(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]string{
+		"127.0.0.1:9876": "http://127.0.0.1:9876",
+		"0.0.0.0:9876":   "http://127.0.0.1:9876",
+		"[::]:9876":      "http://127.0.0.1:9876",
+		"[::1]:9876":     "http://[::1]:9876",
+		"localhost:9876": "http://localhost:9876",
+	}
+
+	for listenAddress, expected := range tests {
+		listenAddress := listenAddress
+		expected := expected
+		t.Run(listenAddress, func(t *testing.T) {
+			t.Parallel()
+			if actual := localDashboardURL(listenAddress); actual != expected {
+				t.Fatalf("expected %q, got %q", expected, actual)
+			}
+		})
+	}
+}

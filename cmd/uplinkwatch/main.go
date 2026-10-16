@@ -122,7 +122,7 @@ func run(arguments []string, stdout, stderr io.Writer) int {
 		close(serverErrors)
 	}()
 
-	dashboardURL := "http://" + settings.Listen
+	dashboardURL := localDashboardURL(settings.Listen)
 	fmt.Fprintf(stderr, "probe %q started: %d target(s), interval %s\n", settings.ProbeID, len(targets), settings.Interval.Duration)
 	fmt.Fprintf(stderr, "local dashboard: %s\n", dashboardURL)
 	if *openDashboard {
@@ -150,6 +150,17 @@ func run(arguments []string, stdout, stderr io.Writer) int {
 			runner.CheckAll(ctx, targets)
 		}
 	}
+}
+
+func localDashboardURL(listenAddress string) string {
+	host, port, err := net.SplitHostPort(listenAddress)
+	if err != nil {
+		return "http://" + listenAddress
+	}
+	if host == "" || host == "0.0.0.0" || host == "::" {
+		host = "127.0.0.1"
+	}
+	return "http://" + net.JoinHostPort(host, port)
 }
 
 func runBrowserDiscovery(outputPath string, limit, days int, stdout, stderr io.Writer) int {
